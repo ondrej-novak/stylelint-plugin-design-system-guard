@@ -23,8 +23,48 @@ describe('no-class-redefinition', () => {
     expect(warnings[0].text).toContain('Do not @extend ".btnPrimary"');
   });
 
+  it('rejects an !optional @extend', async () => {
+    expect(await run('.save { @extend .btnPrimary !optional; }')).toHaveLength(1);
+  });
+
   it('allows a class that only starts with a protected name', async () => {
     expect(await run('.btnPrimaryIcon { width: 16px; } .btnPrimary-label { gap: 4px; }')).toEqual([]);
+  });
+
+  it('allows a class the selector only filters on', async () => {
+    const code = '.card:not(.btnPrimary) { gap: 4px; } .toolbar:has(.btnPrimary) { gap: 4px; } a[href$=".btnPrimary"] { color: red; }';
+    expect(await run(code)).toEqual([]);
+  });
+
+  it('rejects the class inside :is() or :global()', async () => {
+    expect(await run(':is(.btnPrimary) { color: red; } :global(.surfaceCard) { padding: 0; }')).toHaveLength(2);
+  });
+
+  it('rejects a class built by nesting', async () => {
+    const warnings = await run('.btn { &Primary { color: red; } }');
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].text).toContain('".btnPrimary"');
+  });
+
+  it('reports a redefinition once, not again for every nested rule', async () => {
+    expect(await run('.btnPrimary { color: red; &:hover { color: blue; } .label { gap: 4px; } }')).toHaveLength(1);
+  });
+
+  it('rejects the class under @at-root', async () => {
+    expect(await run('.toolbar { @at-root .btnPrimary { color: red; } }')).toHaveLength(1);
+  });
+
+  it('reports every protected class in a selector list', async () => {
+    const warnings = await run('.btnPrimary, .surfaceCard { color: red; }');
+    expect(warnings.map(({ text }) => text)).toEqual([
+      expect.stringContaining('".btnPrimary"'),
+      expect.stringContaining('".surfaceCard"'),
+    ]);
+  });
+
+  it('points at the protected class, not a longer class that starts with it', async () => {
+    const [warning] = await run('.btnPrimaryIcon, .btnPrimary { color: red; }');
+    expect(warning.column).toBe(18);
   });
 
   it('leaves global stylesheets alone, since that is where the classes are defined', async () => {

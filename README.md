@@ -16,8 +16,10 @@ Rejects a design-system class defined or `@extend`ed in a component stylesheet.
 // Button.module.scss
 .btnPrimary { background: blue; }         // ✗ redefines a design-system class
 .toolbar .btnPrimary:hover { color: red; } // ✗ same, inside a longer selector
+.btn { &Primary { color: red; } }          // ✗ same, built by nesting
 .save { @extend .btnPrimary; }             // ✗ extends it
 .btnPrimaryIcon { width: 16px; }           // ✓ a different class
+.card:not(.btnPrimary) { gap: 4px; }       // ✓ only filters on it, as does :has()
 ```
 
 ```
