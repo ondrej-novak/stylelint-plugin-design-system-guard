@@ -17,6 +17,10 @@ describe('no-local-geometry', () => {
     expect(warnings).toHaveLength(1);
   });
 
+  it('rejects logical width properties by default', async () => {
+    expect(await run("[data-viewport='mobile'] { inline-size: 375px; max-inline-size: 360px; }")).toHaveLength(2);
+  });
+
   it('allows other properties under the scope', async () => {
     expect(await run("[data-viewport='mobile'] { padding: 8px; }")).toEqual([]);
   });

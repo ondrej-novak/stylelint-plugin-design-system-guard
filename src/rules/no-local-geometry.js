@@ -17,7 +17,7 @@ const meta = {
   url: 'https://github.com/ondrej-novak/stylelint-plugin-design-system-guard#no-local-geometry',
 };
 
-const DEFAULT_PROPERTIES = ['width', 'min-width', 'max-width'];
+const DEFAULT_PROPERTIES = ['width', 'min-width', 'max-width', 'inline-size', 'min-inline-size', 'max-inline-size'];
 
 /**
  * Some sizes have to agree across the whole app: a mobile preview is 375px everywhere or it is wrong

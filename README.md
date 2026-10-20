@@ -47,7 +47,7 @@ Use it for sizes that have to agree across the whole app, such as the width of a
 | Option | Default | |
 |---|---|---|
 | `selectors` | `[]` | Regular expressions, as strings or RegExp. A declaration counts if any ancestor rule matches. |
-| `properties` | `['width', 'min-width', 'max-width']` | Properties to check |
+| `properties` | `['width', 'min-width', 'max-width', 'inline-size', 'min-inline-size', 'max-inline-size']` | Properties to check |
 | `files` | `/\.module\.s?css$/` | Which files to check, as for `no-class-redefinition` |
 | `hint` | | Text appended to every message |
 
