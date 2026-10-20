@@ -10,7 +10,7 @@ export default {
     }],
     'design-system-guard/no-local-geometry': [true, {
       selectors: ['\\[data-viewport', '\\.mobileView', '\\.desktopView'],
-      hint: 'Preview sizes come from the previewFrame class.',
+      hint: 'Preview sizes come from the previewFrame class in src/styles/_preview.scss.',
     }],
   },
 };

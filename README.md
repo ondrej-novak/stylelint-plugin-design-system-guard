@@ -44,6 +44,20 @@ Use it for sizes that have to agree across the whole app, such as the width of a
 .sidebar { width: 380px; }                         // ✓ not under a configured selector
 ```
 
+The sizes themselves live in one global stylesheet, which the default `files` pattern does not check:
+
+```scss
+// src/styles/_preview.scss
+:root {
+  --preview-mobile-width: 375px;
+  --preview-desktop-width: 1280px;
+}
+.previewFrame[data-viewport='mobile'] { width: var(--preview-mobile-width); }
+.previewFrame[data-viewport='desktop'] { width: var(--preview-desktop-width); }
+```
+
+Components apply `previewFrame` and never set the width. To change a preview size, change it there.
+
 | Option | Default | |
 |---|---|---|
 | `selectors` | `[]` | Regular expressions, as strings or RegExp. A declaration counts if any ancestor rule matches. |
