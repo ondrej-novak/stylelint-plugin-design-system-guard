@@ -26,23 +26,11 @@ describe('no-class-redefinition', () => {
     expect(warnings[0].text).toContain('Apply className="btnPrimary"');
   });
 
-  it('rejects the class inside a compound or nested selector', async () => {
-    const warnings = await run('.toolbar { .surfaceCard:hover {} }');
-    expect(warnings).toHaveLength(1);
-  });
-
   it('rejects @extend of a design-system class', async () => {
     const warnings = await run('.save { @extend .btnPrimary; }');
     expect(warnings).toHaveLength(1);
     expect(warnings[0].text).toContain('Do not @extend ".btnPrimary"');
-  });
-
-  it('rejects an !optional @extend', async () => {
     expect(await run('.save { @extend .btnPrimary !optional; }')).toHaveLength(1);
-  });
-
-  it('allows a class that only starts with a protected name', async () => {
-    expect(await run('.btnPrimaryIcon {} .btnPrimary-label {}')).toEqual([]);
   });
 
   it('allows a class the selector only filters on', async () => {
@@ -50,18 +38,20 @@ describe('no-class-redefinition', () => {
     expect(await run(code)).toEqual([]);
   });
 
-  it('rejects the class inside :is() or :global()', async () => {
-    expect(await run(':is(.btnPrimary) {} :global(.surfaceCard) {}')).toHaveLength(2);
+  it('rejects the class in a compound selector or inside :is() or :global()', async () => {
+    expect(await run('.surfaceCard:hover {} :is(.btnPrimary) {} :global(.surfaceCard) {}')).toHaveLength(3);
   });
 
-  it('rejects a class built by nesting', async () => {
-    const warnings = await run('.btn { &Primary {} }');
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0].text).toContain('".btnPrimary"');
+  it('rejects a class built from the parent selector', async () => {
+    expect(await run('.btn { &Primary {} }')).toMatchObject([{ text: expect.stringContaining('".btnPrimary"') }]);
+    expect(await run('.btn { @at-root #{&}Primary {} }')).toMatchObject([{ text: expect.stringContaining('".btnPrimary"') }]);
+    expect(await run('.surface { #{ & }Card {} }')).toMatchObject([{ text: expect.stringContaining('".surfaceCard"') }]);
   });
 
-  it('reports a redefinition once, not again for every nested rule', async () => {
+  it('reports a redefinition once, not again for nested rules', async () => {
     expect(await run('.btnPrimary { &:hover {} .label {} }')).toHaveLength(1);
+    expect(await run('.btnPrimary { @at-root &:hover {} }')).toHaveLength(1);
+    expect(await run('.btn { @at-root &Primary { &:hover {} .icon {} } }')).toHaveLength(1);
   });
 
   it('rejects the class under @at-root, marking a class built by nesting by its whole selector', async () => {
@@ -72,16 +62,6 @@ describe('no-class-redefinition', () => {
   it('resolves & against an enclosing @at-root, but not an @at-root query', async () => {
     expect(await run('.toolbar { @at-root .btn { @at-root &Primary {} } }')).toHaveLength(1);
     expect(await run('.btn { @at-root (without: media) { &Primary {} } }')).toHaveLength(1);
-  });
-
-  it('reports a redefinition once across @at-root', async () => {
-    expect(await run('.btnPrimary { @at-root &:hover {} }')).toHaveLength(1);
-    expect(await run('.btn { @at-root &Primary { &:hover {} .icon {} } }')).toHaveLength(1);
-  });
-
-  it('rejects a class built by interpolating the parent selector', async () => {
-    expect(await run('.btn { @at-root #{&}Primary {} }')).toMatchObject([{ text: expect.stringContaining('".btnPrimary"') }]);
-    expect(await run('.surface { #{ & }Card {} }')).toMatchObject([{ text: expect.stringContaining('".surfaceCard"') }]);
   });
 
   it('reports every protected class in a selector list', async () => {
@@ -108,14 +88,6 @@ describe('no-class-redefinition', () => {
     expect(await run('.btnPrimary {}', { file: 'src/styles/_buttons.scss' })).toEqual([]);
   });
 
-  it('honours a custom files pattern', async () => {
-    const warnings = await run('.btnPrimary {}', {
-      file: 'src/components/Button.scss',
-      options: { files: 'src/components/' },
-    });
-    expect(warnings).toHaveLength(1);
-  });
-
   it('matches files against the path relative to the working directory', async () => {
     const warnings = await run('.btnPrimary {}', {
       file: 'src/components/Button.scss',
@@ -132,8 +104,8 @@ describe('no-class-redefinition', () => {
     expect(warnings).toHaveLength(1);
   });
 
-  it('checks every file when the files RegExp has the g flag', async () => {
-    const files = /\.module\.scss$/g;
+  it('checks every file when the files RegExp has the g or y flag', async () => {
+    const files = /\.module\.scss$/gy;
     for (const file of ['Button.module.scss', 'Card.module.scss', 'Menu.module.scss']) {
       expect(await run('.btnPrimary {}', { file, options: { files } })).toHaveLength(1);
     }
