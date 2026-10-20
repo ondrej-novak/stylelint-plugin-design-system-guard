@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 const DEFAULT_FILES = [/\.module\.s?css$/];
 
 /** Option validator: a RegExp, or a string that compiles to one. */
@@ -29,9 +31,10 @@ export function isCheckedFile(root, files) {
   return (patterns.length > 0 ? patterns : DEFAULT_FILES).some((pattern) => pattern.test(file));
 }
 
-/** The file being linted with `/` separators on every OS, or '' for code passed in as a string. */
+/** The file being linted, relative to the working directory with `/` separators, or '' for code passed in as a string. */
 export function fileOf(root) {
-  return (root.source?.input?.file ?? '').replaceAll('\\', '/');
+  const file = root.source?.input?.file;
+  return file ? path.relative(process.cwd(), file).replaceAll('\\', '/') : '';
 }
 
 export function escapeRegExp(text) {

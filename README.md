@@ -27,7 +27,7 @@ Rejects a design-system class defined or `@extend`ed in a component stylesheet.
 | Option | Default | |
 |---|---|---|
 | `classes` | `[]` | Class names to protect, without the dot |
-| `files` | `/\.module\.s?css$/` | Which files to check: one or more regular expressions, as strings or RegExp. The global stylesheets that define the classes should not match. |
+| `files` | `/\.module\.s?css$/` | Which files to check: one or more regular expressions, as strings or RegExp, tested against the path relative to the working directory with `/` separators. The global stylesheets that define the classes should not match. |
 | `hint` | | Text appended to every message, for example a link to your guidelines |
 
 ### `no-local-geometry`

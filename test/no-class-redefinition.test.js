@@ -39,6 +39,14 @@ describe('no-class-redefinition', () => {
     expect(warnings).toHaveLength(1);
   });
 
+  it('matches files against the path relative to the working directory', async () => {
+    const warnings = await run('.btnPrimary { color: red; }', {
+      file: 'src/components/Button.scss',
+      options: { files: '^src/components/' },
+    });
+    expect(warnings).toHaveLength(1);
+  });
+
   it('accepts a list of files patterns', async () => {
     const warnings = await run('.btnPrimary { color: red; }', {
       file: 'src/pages/Home.scss',
