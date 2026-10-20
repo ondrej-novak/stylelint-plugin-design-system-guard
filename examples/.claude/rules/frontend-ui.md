@@ -13,7 +13,7 @@ Do not copy their declarations into a module file or `@extend` them. Stylelint r
 
 ## Preview panes
 
-Desktop and mobile previews take their size from the `previewFrame` class. Do not set widths under `[data-viewport]` in a component (`design-system-guard/no-local-geometry`).
+Desktop and mobile previews take their size from the `previewFrame` class in `src/styles/_preview.scss`. Do not set widths under `[data-viewport]` in a component (`design-system-guard/no-local-geometry`). To change a preview size, change it in that file.
 
 ## When lint fails
 

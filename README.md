@@ -16,8 +16,10 @@ Rejects a design-system class defined or `@extend`ed in a component stylesheet.
 // Button.module.scss
 .btnPrimary { background: blue; }         // ✗ redefines a design-system class
 .toolbar .btnPrimary:hover { color: red; } // ✗ same, inside a longer selector
+.btn { &Primary { color: red; } }          // ✗ same, built by nesting
 .save { @extend .btnPrimary; }             // ✗ extends it
 .btnPrimaryIcon { width: 16px; }           // ✓ a different class
+.card:not(.btnPrimary) { gap: 4px; }       // ✓ only filters on it, as does :has()
 ```
 
 ```
@@ -27,7 +29,7 @@ Rejects a design-system class defined or `@extend`ed in a component stylesheet.
 | Option | Default | |
 |---|---|---|
 | `classes` | `[]` | Class names to protect, without the dot |
-| `files` | `/\.module\.s?css$/` | Which files to check. The global stylesheets that define the classes should not match. |
+| `files` | `/\.module\.s?css$/` | Which files to check: one or more regular expressions, as strings or RegExp, tested against the path relative to the working directory with `/` separators. The global stylesheets that define the classes should not match. |
 | `hint` | | Text appended to every message, for example a link to your guidelines |
 
 ### `no-local-geometry`
@@ -42,11 +44,25 @@ Use it for sizes that have to agree across the whole app, such as the width of a
 .sidebar { width: 380px; }                         // ✓ not under a configured selector
 ```
 
+The sizes themselves live in one global stylesheet, which the default `files` pattern does not check:
+
+```scss
+// src/styles/_preview.scss
+:root {
+  --preview-mobile-width: 375px;
+  --preview-desktop-width: 1280px;
+}
+.previewFrame[data-viewport='mobile'] { width: var(--preview-mobile-width); }
+.previewFrame[data-viewport='desktop'] { width: var(--preview-desktop-width); }
+```
+
+Components apply `previewFrame` and never set the width. To change a preview size, change it there.
+
 | Option | Default | |
 |---|---|---|
 | `selectors` | `[]` | Regular expressions, as strings or RegExp. A declaration counts if any ancestor rule matches. |
-| `properties` | `['width', 'min-width', 'max-width']` | Properties to check |
-| `files` | `/\.module\.s?css$/` | Which files to check |
+| `properties` | `['width', 'min-width', 'max-width', 'inline-size', 'min-inline-size', 'max-inline-size']` | Properties to check |
+| `files` | `/\.module\.s?css$/` | Which files to check, as for `no-class-redefinition` |
 | `hint` | | Text appended to every message |
 
 ## Install
@@ -73,7 +89,8 @@ export default {
 };
 ```
 
-For SCSS, add `customSyntax: 'postcss-scss'`.
+For SCSS, also install `postcss-scss` and add `customSyntax: 'postcss-scss'`, as the
+[example config](examples/stylelint.config.js) does.
 
 ## Using it with AI coding agents
 

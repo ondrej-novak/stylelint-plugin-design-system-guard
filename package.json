@@ -5,18 +5,33 @@
   "type": "module",
   "main": "src/index.js",
   "exports": "./src/index.js",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "scripts": {
     "test": "vitest run"
   },
-  "keywords": ["stylelint", "stylelint-plugin", "design-system", "css-modules", "scss"],
+  "keywords": [
+    "stylelint",
+    "stylelint-plugin",
+    "design-system",
+    "css-modules",
+    "scss"
+  ],
   "author": "Ondřej Novák",
   "license": "MIT",
-  "engines": { "node": ">=18.12" },
-  "peerDependencies": { "stylelint": "^16.0.0" },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "peerDependencies": {
+    "stylelint": "^16.0.0 || ^17.0.0"
+  },
   "devDependencies": {
     "postcss-scss": "^4.0.9",
     "stylelint": "^16.0.0",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "postcss-selector-parser": "^7.1.6"
   }
 }
