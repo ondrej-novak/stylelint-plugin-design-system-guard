@@ -44,84 +44,68 @@ const rule = (primary, secondaryOptions) => (root, result) => {
   );
   if (!valid) return;
 
-  const classes = toList(secondaryOptions?.classes);
-  if (classes.length === 0) return;
+  const names = new Set(toList(secondaryOptions?.classes));
+  if (names.size === 0) return;
   if (!isCheckedFile(root, secondaryOptions?.files)) return;
 
   const hint = secondaryOptions?.hint;
-  const findClasses = protectedClassFinder(classes);
-
-  // Resolving nesting first means `.btn { &Primary {} }` counts as `.btnPrimary`.
+  // Selectors with nesting resolved, so `.btn { &Primary {} }` counts as `.btnPrimary`, and the protected
+  // classes they style. `walk` visits a parent before its children, so the parent's entry is always ready.
   const resolved = new Map();
-  const resolve = (node) => {
-    if (!resolved.has(node)) {
-      const parent = selectorParent(node);
-      const selectors = resolveNesting(selectorOf(node), parent && resolve(parent).selectors, node.type === 'atrule');
-      const classes = new Set(selectors.flatMap((selector) => findClasses(selector).map(({ name }) => name)));
-      resolved.set(node, { selectors, classes });
-    }
-    return resolved.get(node);
-  };
 
-  // `offset` is where the selector starts within the node's source.
-  const checkDefinitions = (node, offset = 0) => {
-    const selector = selectorOf(node);
-    const parent = selectorParent(node);
-    const own = findClasses(selector);
-    for (const name of resolve(node).classes) {
-      // `.btnPrimary { &:hover {} }` is one redefinition, already reported on the parent.
-      if (parent && resolve(parent).classes.has(name)) continue;
-      const at = own.find((found) => found.name === name);
-      // A class built by nesting has no text of its own, so mark the whole selector.
-      const [start, end] = at ? [at.index, at.index + name.length + 1] : [0, selector.length];
-      report({ result, ruleName, node, index: offset + start, endIndex: offset + end, message: messages.defined, messageArgs: [name, hint] });
-    }
-  };
+  root.walk((node) => {
+    // postcss-scss parses `@at-root .btnPrimary { … }` as an at-rule, with the selector in params.
+    const offset = node.type === 'atrule' ? `@${node.name}${node.raws.afterName ?? ' '}`.length : 0;
 
-  root.walkRules((node) => checkDefinitions(node));
-
-  // postcss-scss parses `@at-root .btnPrimary { … }` as an at-rule, so walkRules never sees it.
-  root.walkAtRules(/^(at-root|extend)$/i, (node) => {
-    const offset = `@${node.name}${node.raws.afterName ?? ' '}`.length;
-    if (node.name.toLowerCase() === 'at-root') {
-      if (hasSelector(node)) checkDefinitions(node, offset);
+    if (node.type === 'atrule' && node.name.toLowerCase() === 'extend') {
+      for (const [name, index] of findClasses(node.params.replace(/\s*!optional\s*$/i, ''), names)) {
+        const start = offset + index;
+        report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message: messages.extended, messageArgs: [name, hint] });
+      }
       return;
     }
-    for (const { name, index } of findClasses(node.params.replace(/\s*!optional\s*$/i, ''))) {
-      const start = offset + index;
-      report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message: messages.extended, messageArgs: [name, hint] });
+
+    const selector = selectorOf(node);
+    if (selector === undefined) return;
+
+    // `&` refers to the nearest ancestor with a selector. Other at-rules, such as `@media`, sit between without changing it.
+    let ancestor = node.parent;
+    while (ancestor && !resolved.has(ancestor)) ancestor = ancestor.parent;
+    const parent = resolved.get(ancestor);
+
+    const selectors = resolveNesting(selector, parent?.selectors, node.type === 'atrule');
+    const classes = new Set(selectors.flatMap((resolvedSelector) => [...findClasses(resolvedSelector, names).keys()]));
+    resolved.set(node, { selectors, classes });
+
+    const own = findClasses(selector, names);
+    for (const name of classes) {
+      // `.btnPrimary { &:hover {} }` is one redefinition, already reported on the parent.
+      if (parent?.classes.has(name)) continue;
+      // A class built by nesting has no text of its own, so mark the whole selector.
+      const [start, end] = own.has(name) ? [own.get(name), own.get(name) + name.length + 1] : [0, selector.length];
+      report({ result, ruleName, node, index: offset + start, endIndex: offset + end, message: messages.defined, messageArgs: [name, hint] });
     }
   });
 };
 
 /**
- * Returns a function listing the protected classes a selector styles, each with the offset of its dot.
- * Classes inside `:not()` or `:has()` and text in attribute values do not count. Text the parser
- * rejects, such as the `font:` of a Sass nested property, styles no class.
+ * Maps each protected class `selector` styles to the offset of its dot. Classes inside `:not()` or `:has()`
+ * and text in attribute values do not count. Text the parser rejects, such as the `font:` of a Sass
+ * nested property, styles no class.
  */
-function protectedClassFinder(classes) {
-  const names = new Set(classes);
-
-  return (selector) => {
-    const found = new Map();
-    try {
-      selectorParser((ast) => {
-        ast.walkClasses((node) => {
-          if (names.has(node.value) && !found.has(node.value) && !isInsideFilter(node)) found.set(node.value, node.sourceIndex);
-        });
-      }).processSync(selector);
-    } catch {
-      return [];
-    }
-    return [...found].map(([name, index]) => ({ name, index }));
-  };
-}
-
-function isInsideFilter(node) {
-  for (let parent = node.parent; parent; parent = parent.parent) {
-    if (parent.type === 'pseudo' && FILTER_PSEUDOS.has(parent.value.toLowerCase())) return true;
-  }
-  return false;
+function findClasses(selector, names) {
+  const found = new Map();
+  try {
+    selectorParser((ast) => {
+      ast.walkPseudos((pseudo) => {
+        if (FILTER_PSEUDOS.has(pseudo.value.toLowerCase())) pseudo.remove();
+      });
+      ast.walkClasses((node) => {
+        if (names.has(node.value) && !found.has(node.value)) found.set(node.value, node.sourceIndex);
+      });
+    }).processSync(selector);
+  } catch {}
+  return found;
 }
 
 /**
@@ -164,23 +148,12 @@ function splitOutside(text, separator) {
   return parts;
 }
 
-// The nearest ancestor `&` refers to. Other at-rules, such as `@media`, sit between without changing it.
-function selectorParent(node) {
-  for (let parent = node.parent; parent; parent = parent.parent) {
-    if (hasSelector(parent)) return parent;
-  }
-  return undefined;
-}
-
-// The bare and `(without: media)` forms of `@at-root` carry no selector; walkRules checks the rules inside them.
-function hasSelector(node) {
-  if (node.type === 'rule') return true;
-  return node.type === 'atrule' && node.name.toLowerCase() === 'at-root' && node.params !== '' && !node.params.startsWith('(');
-}
-
-// `@at-root &Primary` holds its selector in params.
+// A rule's selector, or the one `@at-root &Primary` holds in params. The bare and `(without: media)`
+// forms of `@at-root` carry none, and `&` inside them refers further up.
 function selectorOf(node) {
-  return node.type === 'rule' ? node.selector : node.params;
+  if (node.type === 'rule') return node.selector;
+  if (node.type === 'atrule' && node.name.toLowerCase() === 'at-root' && node.params !== '' && !node.params.startsWith('(')) return node.params;
+  return undefined;
 }
 
 rule.ruleName = ruleName;
