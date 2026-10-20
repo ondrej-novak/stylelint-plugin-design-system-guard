@@ -1,9 +1,32 @@
-const DEFAULT_FILES = /\.module\.s?css$/;
+const DEFAULT_FILES = [/\.module\.s?css$/];
 
-/** Turns the `files` option (a string or RegExp) into a RegExp, falling back to CSS modules. */
-export function toFilePattern(files) {
-  if (!files) return DEFAULT_FILES;
-  return files instanceof RegExp ? files : new RegExp(files);
+/** Option validator: a RegExp, or a string that compiles to one. */
+export function isPattern(value) {
+  if (value instanceof RegExp) return true;
+  if (typeof value !== 'string') return false;
+  try {
+    new RegExp(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** An option that takes one value or a list of them, as a list. */
+export function toList(value) {
+  return value === undefined ? [] : [value].flat();
+}
+
+/** Compiles pattern options. Drops `g` and `y`, which make `.test()` stateful across calls. */
+export function toPatterns(value) {
+  return toList(value).map((p) => (p instanceof RegExp ? new RegExp(p.source, p.flags.replace(/[gy]/g, '')) : new RegExp(p)));
+}
+
+/** Whether the file being linted matches the `files` option, falling back to CSS modules. */
+export function isCheckedFile(root, files) {
+  const patterns = toPatterns(files);
+  const file = fileOf(root);
+  return (patterns.length > 0 ? patterns : DEFAULT_FILES).some((pattern) => pattern.test(file));
 }
 
 /** The file being linted with `/` separators on every OS, or '' for code passed in as a string. */

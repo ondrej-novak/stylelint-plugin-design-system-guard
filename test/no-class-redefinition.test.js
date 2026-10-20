@@ -39,6 +39,31 @@ describe('no-class-redefinition', () => {
     expect(warnings).toHaveLength(1);
   });
 
+  it('accepts a list of files patterns', async () => {
+    const warnings = await run('.btnPrimary { color: red; }', {
+      file: 'src/pages/Home.scss',
+      options: { files: ['src/components/', 'src/pages/'] },
+    });
+    expect(warnings).toHaveLength(1);
+  });
+
+  it('checks every file when the files RegExp has the g flag', async () => {
+    const files = /\.module\.scss$/g;
+    for (const file of ['Button.module.scss', 'Card.module.scss', 'Menu.module.scss']) {
+      expect(await run('.btnPrimary { color: red; }', { file, options: { files } })).toHaveLength(1);
+    }
+  });
+
+  it('accepts a single class as a string', async () => {
+    expect(await run('.btnPrimary { color: red; }', { options: { classes: 'btnPrimary' } })).toHaveLength(1);
+  });
+
+  it('reports a files pattern that does not compile as an invalid option', async () => {
+    await expect(run('.btnPrimary { color: red; }', { options: { files: '[src' } })).rejects.toThrow(
+      'Invalid value "[src" for option "files"',
+    );
+  });
+
   it('appends the hint so the message can point at the team rule', async () => {
     const warnings = await run('.btnPrimary { color: red; }', { options: { hint: 'See docs/buttons.md.' } });
     expect(warnings[0].text).toContain('See docs/buttons.md.');

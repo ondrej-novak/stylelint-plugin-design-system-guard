@@ -1,5 +1,5 @@
 import stylelint from 'stylelint';
-import { classPattern, fileOf, toFilePattern } from '../utils.js';
+import { classPattern, isCheckedFile, isPattern, toList } from '../utils.js';
 
 const {
   createPlugin,
@@ -33,16 +33,16 @@ const rule = (primary, secondaryOptions) => (root, result) => {
       actual: secondaryOptions,
       possible: {
         classes: [(value) => typeof value === 'string'],
-        files: [(value) => typeof value === 'string' || value instanceof RegExp],
+        files: [isPattern],
         hint: [(value) => typeof value === 'string'],
       },
     },
   );
   if (!valid) return;
 
-  const classes = secondaryOptions?.classes ?? [];
+  const classes = toList(secondaryOptions?.classes);
   if (classes.length === 0) return;
-  if (!toFilePattern(secondaryOptions?.files).test(fileOf(root))) return;
+  if (!isCheckedFile(root, secondaryOptions?.files)) return;
 
   const hint = secondaryOptions?.hint;
   const patterns = classes.map((name) => [name, classPattern(name)]);

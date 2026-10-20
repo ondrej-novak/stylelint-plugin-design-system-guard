@@ -1,5 +1,5 @@
 import stylelint from 'stylelint';
-import { fileOf, toFilePattern } from '../utils.js';
+import { isCheckedFile, isPattern, toList, toPatterns } from '../utils.js';
 
 const {
   createPlugin,
@@ -32,20 +32,20 @@ const rule = (primary, secondaryOptions) => (root, result) => {
     {
       actual: secondaryOptions,
       possible: {
-        selectors: [(value) => typeof value === 'string' || value instanceof RegExp],
+        selectors: [isPattern],
         properties: [(value) => typeof value === 'string'],
-        files: [(value) => typeof value === 'string' || value instanceof RegExp],
+        files: [isPattern],
         hint: [(value) => typeof value === 'string'],
       },
     },
   );
   if (!valid) return;
 
-  const selectors = (secondaryOptions?.selectors ?? []).map((s) => (s instanceof RegExp ? s : new RegExp(s)));
+  const selectors = toPatterns(secondaryOptions?.selectors);
   if (selectors.length === 0) return;
-  if (!toFilePattern(secondaryOptions?.files).test(fileOf(root))) return;
+  if (!isCheckedFile(root, secondaryOptions?.files)) return;
 
-  const properties = new Set(secondaryOptions?.properties ?? DEFAULT_PROPERTIES);
+  const properties = new Set(toList(secondaryOptions?.properties ?? DEFAULT_PROPERTIES).map((p) => p.toLowerCase()));
   const hint = secondaryOptions?.hint;
 
   root.walkDecls((decl) => {
