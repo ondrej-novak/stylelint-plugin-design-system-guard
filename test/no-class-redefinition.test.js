@@ -67,6 +67,13 @@ describe('no-class-redefinition', () => {
     expect(warning.column).toBe(18);
   });
 
+  it('passes the class name to a custom message', async () => {
+    const warnings = await run('.btnPrimary { color: red; }', {
+      options: { message: (name) => `Use ${name} from the design system.` },
+    });
+    expect(warnings[0].text).toBe(`Use btnPrimary from the design system. (${ruleName})`);
+  });
+
   it('leaves global stylesheets alone, since that is where the classes are defined', async () => {
     expect(await run('.btnPrimary { color: red; }', { file: 'src/styles/_buttons.scss' })).toEqual([]);
   });

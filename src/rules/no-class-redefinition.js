@@ -71,7 +71,7 @@ const rule = (primary, secondaryOptions) => (root, result) => {
       const at = own.find((found) => found.name === name);
       // A class built by nesting has no text of its own, so mark the whole selector.
       const [index, endIndex] = at ? [at.index, at.index + name.length + 1] : [0, node.selector.length];
-      report({ result, ruleName, node, index, endIndex, message: messages.defined(name, hint) });
+      report({ result, ruleName, node, index, endIndex, message: messages.defined, messageArgs: [name, hint] });
     }
   });
 
@@ -81,7 +81,7 @@ const rule = (primary, secondaryOptions) => (root, result) => {
     const offset = `@${node.name}${node.raws.afterName ?? ' '}`.length;
     for (const { name, index } of findClasses(node.params.replace(/\s*!optional\s*$/i, ''))) {
       const start = offset + index;
-      report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message: message(name, hint) });
+      report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message, messageArgs: [name, hint] });
     }
   });
 };

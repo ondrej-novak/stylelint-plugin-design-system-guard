@@ -51,7 +51,7 @@ const rule = (primary, secondaryOptions) => (root, result) => {
   root.walkDecls((decl) => {
     if (!properties.has(decl.prop.toLowerCase())) return;
     if (!isInsideScopedRule(decl, selectors)) return;
-    report({ result, ruleName, node: decl, word: decl.prop, message: messages.rejected(decl.prop, hint) });
+    report({ result, ruleName, node: decl, word: decl.prop, message: messages.rejected, messageArgs: [decl.prop, hint] });
   });
 };
 
