@@ -64,23 +64,24 @@ describe('no-class-redefinition', () => {
     expect(await run('.btnPrimary { &:hover {} .label {} }')).toHaveLength(1);
   });
 
-  it('rejects the class under @at-root', async () => {
-    expect(await run('.toolbar { @at-root .btnPrimary {} }')).toHaveLength(1);
+  it('rejects the class under @at-root, marking a class built by nesting by its whole selector', async () => {
+    expect(await run('.toolbar { @at-root .btnPrimary {} }')).toMatchObject([{ column: 21, endColumn: 32 }]);
+    expect(await run('.btn { @at-root &Primary {} }')).toMatchObject([{ column: 17, endColumn: 25 }]);
   });
 
-  it('rejects a class built by nesting under @at-root, marking its whole selector', async () => {
-    const [warning, ...rest] = await run('.btn { @at-root &Primary { color: red; } }');
-    expect(rest).toEqual([]);
-    expect(warning).toMatchObject({ text: expect.stringContaining('".btnPrimary"'), column: 17, endColumn: 25 });
+  it('resolves & against an enclosing @at-root, but not an @at-root query', async () => {
+    expect(await run('.toolbar { @at-root .btn { @at-root &Primary {} } }')).toHaveLength(1);
+    expect(await run('.btn { @at-root (without: media) { &Primary {} } }')).toHaveLength(1);
   });
 
-  it('reports an @at-root rule inside a redefinition once', async () => {
+  it('reports a redefinition once across @at-root', async () => {
     expect(await run('.btnPrimary { @at-root &:hover {} }')).toHaveLength(1);
+    expect(await run('.btn { @at-root &Primary { &:hover {} .icon {} } }')).toHaveLength(1);
   });
 
-  it('checks the rules inside an @at-root query, not the query itself', async () => {
-    const warnings = await run('.btn { @at-root (without: media) { .btnPrimary {} } }');
-    expect(warnings).toMatchObject([{ column: 36 }]);
+  it('rejects a class built by interpolating the parent selector', async () => {
+    expect(await run('.btn { @at-root #{&}Primary {} }')).toMatchObject([{ text: expect.stringContaining('".btnPrimary"') }]);
+    expect(await run('.surface { #{ & }Card {} }')).toMatchObject([{ text: expect.stringContaining('".surfaceCard"') }]);
   });
 
   it('reports every protected class in a selector list', async () => {
