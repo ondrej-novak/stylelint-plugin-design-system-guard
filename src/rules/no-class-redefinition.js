@@ -1,6 +1,6 @@
 import selectorParser from 'postcss-selector-parser';
 import stylelint from 'stylelint';
-import { classPattern, isCheckedFile, isPattern, toList } from '../utils.js';
+import { isCheckedFile, isPattern, toList } from '../utils.js';
 
 const {
   createPlugin,
@@ -96,12 +96,11 @@ const rule = (primary, secondaryOptions) => (root, result) => {
 
 /**
  * Returns a function listing the protected classes a selector styles, each with the offset of its dot.
- * Classes inside `:not()` or `:has()` and text in attribute values do not count. Selectors the parser
- * rejects, such as some SCSS interpolation, fall back to a text match.
+ * Classes inside `:not()` or `:has()` and text in attribute values do not count. Text the parser
+ * rejects, such as the `font:` of a Sass nested property, styles no class.
  */
 function protectedClassFinder(classes) {
   const names = new Set(classes);
-  const patterns = classes.map((name) => [name, classPattern(name)]);
 
   return (selector) => {
     const found = new Map();
@@ -112,11 +111,7 @@ function protectedClassFinder(classes) {
         });
       }).processSync(selector);
     } catch {
-      found.clear();
-      for (const [name, pattern] of patterns) {
-        const match = pattern.exec(selector);
-        if (match) found.set(name, match.index);
-      }
+      return [];
     }
     return [...found].map(([name, index]) => ({ name, index }));
   };

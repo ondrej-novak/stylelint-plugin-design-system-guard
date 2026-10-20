@@ -36,12 +36,3 @@ export function fileOf(root) {
   const file = root.source?.input?.file;
   return file ? path.relative(process.cwd(), file).replaceAll('\\', '/') : '';
 }
-
-export function escapeRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-/** Matches `.name` as a whole class, so `.btnPrimary` does not also catch `.btnPrimaryIcon`. */
-export function classPattern(name) {
-  return new RegExp(`\\.${escapeRegExp(name)}(?![\\w-])`);
-}
