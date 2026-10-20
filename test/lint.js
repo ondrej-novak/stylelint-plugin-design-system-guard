@@ -12,5 +12,9 @@ export async function lint(code, { file = 'Button.module.scss', ruleName, option
       rules: { [ruleName]: [true, options] },
     },
   });
-  return results[0].warnings.map(({ text, line }) => ({ text, line }));
+  const [result] = results;
+  if (result.invalidOptionWarnings.length) {
+    throw new Error(result.invalidOptionWarnings.map(({ text }) => text).join('\n'));
+  }
+  return result.warnings.map(({ text, line }) => ({ text, line }));
 }
