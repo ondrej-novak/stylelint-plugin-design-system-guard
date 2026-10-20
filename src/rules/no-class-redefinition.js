@@ -56,32 +56,40 @@ const rule = (primary, secondaryOptions) => (root, result) => {
   const resolved = new Map();
   const resolvedClasses = (node) => {
     if (!resolved.has(node)) {
-      const selectors = resolveNestedSelector(node.selector, node);
+      const selectors = resolveNestedSelector(selectorOf(node), node);
       resolved.set(node, new Set(selectors.flatMap((selector) => findClasses(selector).map(({ name }) => name))));
     }
     return resolved.get(node);
   };
 
-  root.walkRules((node) => {
+  // `offset` is where the selector starts within the node's source.
+  const checkDefinitions = (node, offset = 0) => {
+    const selector = selectorOf(node);
     const parent = closestRule(node);
-    const own = findClasses(node.selector);
+    const own = findClasses(selector);
     for (const name of resolvedClasses(node)) {
       // `.btnPrimary { &:hover {} }` is one redefinition, already reported on the parent.
       if (parent && resolvedClasses(parent).has(name)) continue;
       const at = own.find((found) => found.name === name);
       // A class built by nesting has no text of its own, so mark the whole selector.
-      const [index, endIndex] = at ? [at.index, at.index + name.length + 1] : [0, node.selector.length];
-      report({ result, ruleName, node, index, endIndex, message: messages.defined, messageArgs: [name, hint] });
+      const [start, end] = at ? [at.index, at.index + name.length + 1] : [0, selector.length];
+      report({ result, ruleName, node, index: offset + start, endIndex: offset + end, message: messages.defined, messageArgs: [name, hint] });
     }
-  });
+  };
+
+  root.walkRules((node) => checkDefinitions(node));
 
   // postcss-scss parses `@at-root .btnPrimary { … }` as an at-rule, so walkRules never sees it.
   root.walkAtRules(/^(at-root|extend)$/i, (node) => {
-    const message = node.name.toLowerCase() === 'extend' ? messages.extended : messages.defined;
     const offset = `@${node.name}${node.raws.afterName ?? ' '}`.length;
+    if (node.name.toLowerCase() === 'at-root') {
+      // The bare and `(without: media)` forms carry no selector; walkRules checks the rules inside them.
+      if (node.params && !node.params.startsWith('(')) checkDefinitions(node, offset);
+      return;
+    }
     for (const { name, index } of findClasses(node.params.replace(/\s*!optional\s*$/i, ''))) {
       const start = offset + index;
-      report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message, messageArgs: [name, hint] });
+      report({ result, ruleName, node, index: start, endIndex: start + name.length + 1, message: messages.extended, messageArgs: [name, hint] });
     }
   });
 };
@@ -119,6 +127,11 @@ function isInsideFilter(node) {
     if (parent.type === 'pseudo' && FILTER_PSEUDOS.has(parent.value.toLowerCase())) return true;
   }
   return false;
+}
+
+// `@at-root &Primary` holds its selector in params.
+function selectorOf(node) {
+  return node.type === 'rule' ? node.selector : node.params;
 }
 
 function closestRule(node) {

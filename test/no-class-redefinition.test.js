@@ -68,6 +68,21 @@ describe('no-class-redefinition', () => {
     expect(await run('.toolbar { @at-root .btnPrimary {} }')).toHaveLength(1);
   });
 
+  it('rejects a class built by nesting under @at-root, marking its whole selector', async () => {
+    const [warning, ...rest] = await run('.btn { @at-root &Primary { color: red; } }');
+    expect(rest).toEqual([]);
+    expect(warning).toMatchObject({ text: expect.stringContaining('".btnPrimary"'), column: 17, endColumn: 25 });
+  });
+
+  it('reports an @at-root rule inside a redefinition once', async () => {
+    expect(await run('.btnPrimary { @at-root &:hover {} }')).toHaveLength(1);
+  });
+
+  it('checks the rules inside an @at-root query, not the query itself', async () => {
+    const warnings = await run('.btn { @at-root (without: media) { .btnPrimary {} } }');
+    expect(warnings).toMatchObject([{ column: 36 }]);
+  });
+
   it('reports every protected class in a selector list', async () => {
     const warnings = await run('.btnPrimary, .surfaceCard {}');
     expect(warnings.map(({ text }) => text)).toEqual([
