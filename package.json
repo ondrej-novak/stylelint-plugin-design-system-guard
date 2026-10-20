@@ -1,0 +1,22 @@
+{
+  "name": "stylelint-plugin-design-system-guard",
+  "version": "0.1.0",
+  "description": "Stylelint rules that stop component styles from quietly redefining your design system.",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": "./src/index.js",
+  "files": ["src"],
+  "scripts": {
+    "test": "vitest run"
+  },
+  "keywords": ["stylelint", "stylelint-plugin", "design-system", "css-modules", "scss"],
+  "author": "Ondřej Novák",
+  "license": "MIT",
+  "engines": { "node": ">=18.12" },
+  "peerDependencies": { "stylelint": "^16.0.0" },
+  "devDependencies": {
+    "postcss-scss": "^4.0.9",
+    "stylelint": "^16.0.0",
+    "vitest": "^5.0.5"
+  }
+}
