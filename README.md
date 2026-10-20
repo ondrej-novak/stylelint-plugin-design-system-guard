@@ -73,7 +73,8 @@ export default {
 };
 ```
 
-For SCSS, add `customSyntax: 'postcss-scss'`.
+For SCSS, also install `postcss-scss` and add `customSyntax: 'postcss-scss'`, as the
+[example config](examples/stylelint.config.js) does.
 
 ## Using it with AI coding agents
 
